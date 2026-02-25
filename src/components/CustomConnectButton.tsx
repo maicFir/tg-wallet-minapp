@@ -1,112 +1,42 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import '@/config/reown';
+import { appKit } from '@/config/reown';
+import { useAccount } from 'wagmi';
 import React from 'react';
 
 export const CustomConnectButton = () => {
+    const { address, isConnected, chain } = useAccount();
+
+    if (!isConnected) {
+        return (
+            <button
+                onClick={() => appKit?.open({ view: 'Connect' })}
+                type="button"
+                className="custom-btn connect-btn"
+            >
+                Connect Wallet
+            </button>
+        );
+    }
+
     return (
-        <ConnectButton.Custom>
-            {({
-                account,
-                chain,
-                openAccountModal,
-                openChainModal,
-                openConnectModal,
-                authenticationStatus,
-                mounted,
-            }) => {
-                // 注意：在组件未挂载或身份验证正在加载时，不显示内容以避免水合错误
-                const ready = mounted && authenticationStatus !== 'loading';
-                const connected =
-                    ready &&
-                    account &&
-                    chain &&
-                    (!authenticationStatus ||
-                        authenticationStatus === 'authenticated');
-
-                return (
-                    <div
-                        {...(!ready && {
-                            'aria-hidden': true,
-                            'style': {
-                                opacity: 0,
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                            },
-                        })}
-                    >
-                        {(() => {
-                            if (!connected) {
-                                return (
-                                    <button
-                                        onClick={openConnectModal}
-                                        type="button"
-                                        className="custom-btn connect-btn"
-                                    >
-                                        Connect Wallet
-                                    </button>
-                                );
-                            }
-
-                            if (chain.unsupported) {
-                                return (
-                                    <button
-                                        onClick={openChainModal}
-                                        type="button"
-                                        className="custom-btn error-btn"
-                                    >
-                                        Wrong Network
-                                    </button>
-                                );
-                            }
-
-                            return (
-                                <div style={{ display: 'flex', gap: 12 }}>
-                                    <button
-                                        onClick={openChainModal}
-                                        style={{ display: 'flex', alignItems: 'center' }}
-                                        type="button"
-                                        className="custom-btn chain-btn"
-                                    >
-                                        {chain.hasIcon && (
-                                            <div
-                                                style={{
-                                                    background: chain.iconBackground,
-                                                    width: 12,
-                                                    height: 12,
-                                                    borderRadius: 999,
-                                                    overflow: 'hidden',
-                                                    marginRight: 4,
-                                                }}
-                                            >
-                                                {chain.iconUrl && (
-                                                    <img
-                                                        alt={chain.name ?? 'Chain icon'}
-                                                        src={chain.iconUrl}
-                                                        style={{ width: 12, height: 12 }}
-                                                    />
-                                                )}
-                                            </div>
-                                        )}
-                                        {chain.name}
-                                    </button>
-
-                                    <button
-                                        onClick={openAccountModal}
-                                        type="button"
-                                        className="custom-btn account-btn"
-                                    >
-                                        {account.displayName}
-                                        {account.displayBalance
-                                            ? ` (${account.displayBalance})`
-                                            : ''}
-                                    </button>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                );
-            }}
-        </ConnectButton.Custom>
+        <div style={{ display: 'flex', gap: 12 }}>
+            <button
+                onClick={() => appKit?.open({ view: 'Networks' })}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                type="button"
+                className="custom-btn chain-btn"
+            >
+                {chain?.name ?? 'Switch Network'}
+            </button>
+            <button
+                onClick={() => appKit?.open({ view: 'Account' })}
+                type="button"
+                className="custom-btn account-btn"
+            >
+                {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Account'}
+            </button>
+        </div>
     );
 };

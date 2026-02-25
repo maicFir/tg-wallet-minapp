@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TG Wallet MinApp",
-  description: "Telegram Mini App with RainbowKit Integration",
+  description: "Telegram Mini App with Reown AppKit Wallet Integration",
 };
 
 export default function RootLayout({

@@ -2,11 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    '@rainbow-me/rainbowkit',
+    '@reown/appkit',
+    '@reown/appkit-adapter-wagmi',
     'wagmi',
     'viem',
     '@walletconnect/ethereum-provider',
-    '@walletconnect/modal',
     '@walletconnect/universal-provider',
     'pino-pretty'
   ],

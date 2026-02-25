@@ -1,58 +1,67 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
+// 加载此模块即触发 createAppKit（模块级别初始化）
+import '@/config/reown';
+import { appKit } from '@/config/reown';
 import { useEffect, useState } from 'react';
-import { CustomConnectButton } from './CustomConnectButton';
+import { useAccount } from 'wagmi';
 import { useWeb3Ready } from '@/providers/Web3Provider';
 
 /**
- * 依赖 Wagmi Hooks 的子组件
+ * 核心连接内容
+ * 不再使用 useAppKit() hook，改用直接调用 appKit 实例方法
+ * 这样可以完全避免 "createAppKit must be called before useAppKit" 问题
  */
 function WalletConnectorContent() {
-    // 只有在 Web3Provider 确认就绪后才会被渲染，所以这里调用 useAccount 是安全的
     const { address, isConnected, chain } = useAccount();
+
+    const handleOpen = (view: 'Connect' | 'Account' | 'Networks') => {
+        appKit?.open({ view });
+    };
 
     return (
         <>
             <section className="button-section">
-                <span className="section-label">SDK Standard Button</span>
-                <ConnectButton />
+                {/* Reown AppKit 原生 Web Component 按钮 */}
+                <appkit-button />
             </section>
 
-            <div className="divider"></div>
-            <br />
+            <div className="divider" />
 
             <section className="button-section">
-                <span className="section-label">Custom Specialized Button</span>
-                <CustomConnectButton />
+                <span className="section-label">Custom Button</span>
+                {isConnected ? (
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button
+                            type="button"
+                            className="custom-btn chain-btn"
+                            onClick={() => handleOpen('Networks')}
+                        >
+                            {chain?.name ?? 'Switch Network'}
+                        </button>
+                        <button
+                            type="button"
+                            className="custom-btn account-btn"
+                            onClick={() => handleOpen('Account')}
+                        >
+                            {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Account'}
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className="custom-btn connect-btn"
+                        onClick={() => handleOpen('Connect')}
+                    >
+                        Connect Wallet
+                    </button>
+                )}
             </section>
-
-            {/* <section className="button-section">
-                <span className="section-label">Deep Link Testing</span>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <button
-                        className="custom-btn chain-btn"
-                        style={{ fontSize: '12px', padding: '8px 12px' }}
-                        onClick={() => window?.Telegram?.WebApp?.openLink('https://rainbowkit.com/zh-CN', { try_instant_view: false })}
-                    >
-                        Test RainbowKit
-                    </button>
-
-                    <button
-                        className="custom-btn chain-btn"
-                        style={{ fontSize: '12px', padding: '8px 12px' }}
-                        onClick={() => window?.Telegram?.WebApp?.openLink('https://metamask.app.link/', { try_instant_view: false })}
-                    >
-                        Test MetaMask (UL)
-                    </button>
-                </div>
-            </section> */}
 
             {isConnected && (
                 <div className="account-info">
                     <div className="status-badge">
-                        <span className="dot"></span>
+                        <span className="dot" />
                         Connected
                     </div>
                     <p className="address-text">{address}</p>
@@ -78,15 +87,11 @@ export default function WalletConnector() {
         }
     }, []);
 
-    // 关键修复：
-    // 1. 如果没挂载到客户端，直接返回通用 Loading
-    // 2. 即使挂载了，如果 Web3Provider 还没清理完环境 (isReady 为 false)，依然返回 Loading
-    // 只有两项都满足，才渲染 WalletConnectorContent (内部含有 Hook 调用)
-    if (!mounted || !isReady) {
+    if (!mounted) {
         return (
-            <div className="connector-container" style={{ minHeight: '300px' }}>
+            <div className="connector-container" style={{ minHeight: '200px' }}>
                 <div className="status-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>
-                    Initializing Wallet Environment...
+                    Loading...
                 </div>
             </div>
         );
@@ -110,9 +115,9 @@ export default function WalletConnector() {
                     justify-content: center;
                 }
                 .connect-btn {
-                    background: linear-gradient(135deg, #0088cc 0%, #0077b5 100%);
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3);
+                    background: linear-gradient(135deg, #00da95 0%, #00b37a 100%);
+                    color: #000;
+                    box-shadow: 0 4px 15px rgba(0, 218, 149, 0.3);
                 }
                 .chain-btn {
                     background: rgba(255, 255, 255, 0.1);
@@ -124,7 +129,12 @@ export default function WalletConnector() {
                     color: white;
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
-                .error-btn { background: #ff4d4f; color: white; }
+                .dot {
+                    width: 6px;
+                    height: 6px;
+                    background: #00da95;
+                    border-radius: 50%;
+                }
             `}</style>
 
             <style jsx>{`
@@ -157,7 +167,7 @@ export default function WalletConnector() {
                 .divider {
                     width: 100%;
                     height: 1px;
-                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
                 }
                 .status-badge {
                     display: flex;
@@ -169,6 +179,14 @@ export default function WalletConnector() {
                     border-radius: 20px;
                     font-size: 12px;
                 }
+                .account-info {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 16px;
+                    width: 100%;
+                }
                 .address-text {
                     font-size: 13px;
                     color: rgba(255, 255, 255, 0.6);
@@ -177,6 +195,10 @@ export default function WalletConnector() {
                     padding: 8px 12px;
                     border-radius: 8px;
                     word-break: break-all;
+                }
+                .network-text {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.4);
                 }
             `}</style>
         </div>
