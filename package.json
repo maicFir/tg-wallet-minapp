@@ -4,19 +4,30 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:test": "cross-env NODE_ENV=test next dev",
+    "dev:prod": "cross-env NODE_ENV=production next dev",
     "build": "next build",
+    "build:test": "cross-env NODE_ENV=test next build",
+    "build:prod": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.90.21",
+    "@twa-dev/sdk": "^8.0.2",
+    "eruda": "^3.4.3",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "viem": "^2.46.3",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^20.19.33",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "typescript": "^5"
