@@ -25,104 +25,105 @@ const openInTelegramSafe = (uri: string, prefix: string, universalLink?: string)
     const webApp = window.Telegram?.WebApp;
     const encodedUri = encodeURIComponent(uri);
 
-    // 1. 构造最可能的成功 Deep Link
+    // 1. 针对常见的钱包采用最稳健的 Universal Link 桥接方案
     let finalLink = uri;
     const cleanPrefix = prefix.replace('://', '');
 
     if (isIOS()) {
-        if (cleanPrefix === 'okx') {
-            // OKX iOS 专用稳定路径
-            finalLink = `okx://main/wc?uri=${encodedUri}`;
+        if (cleanPrefix === 'okx' || cleanPrefix === 'okex') {
+            // OKX 的终极兼容方案：通过其官方下载页中转带参数的 Deeplink
+            finalLink = `https://www.okx.com/download?deeplink=${encodeURIComponent(`okx://web3/wallet/walletConnect?uri=${encodedUri}`)}`;
+        } else if (cleanPrefix === 'metamask') {
+            finalLink = `https://metamask.app.link/wc?uri=${encodedUri}`;
         } else if (universalLink) {
-            // 如果有 Universal Link (https)，直接使用，不拼接 uri（除非是特定格式）
             finalLink = `${universalLink}${universalLink.includes('?') ? '&' : '?'}uri=${encodedUri}`;
         } else {
             finalLink = `${cleanPrefix}://wc?uri=${encodedUri}`;
         }
     }
 
-    // 2. 核心：执行跳转
-    if (webApp) {
-        // 尝试使用 Telegram SDK 唤起
-        // try_instant_view: false 防止被 TG 内部预览拦截
+    // 2. 执行跳转
+    if (webApp && finalLink.startsWith('http')) {
+        // 对于 https 链接，openLink 是最稳妥的唤起手段
         webApp.openLink(finalLink, { try_instant_view: false });
-
-        // 策略回退：如果 openLink 没反应（部分 iOS 版本限制），
-        // 延迟 100ms 使用 location.href 强制触发
-        setTimeout(() => {
-            window.location.href = finalLink;
-        }, 150);
     } else {
+        // 自定义协议 (abpay:// 等) 使用 location 兜底
         window.location.href = finalLink;
+
+        // 针对某些 iOS 版本的 Telegram，再次尝试模拟点击
+        setTimeout(() => {
+            if (!document.hidden) {
+                const a = document.createElement('a');
+                a.href = finalLink;
+                a.click();
+            }
+        }, 100);
     }
 };
 
 /**
- * 自定义 AB PAY 钱包定义
+ * 自定义 AB PAY 钱包
  */
 const abPayWallet = ({ projectId }: { projectId: string }) => () => ({
     id: 'abpay',
     name: 'AB PAY',
-    iconUrl: 'https://i.mij.rip/2026/02/25/0d5e8b6d73c2db99f659114a599f4028.webp',
+    iconUrl: `https://explorer-api.walletconnect.com/v3/logo/sm/f635dbaa-dd03-419c-5dce-05aa0f127c00?projectId=${projectId}`,
     iconBackground: '#ffffff',
     downloadUrls: {
-        android: 'https://www.abpay.cash/',
-        ios: 'https://www.abpay.cash/',
+        android: 'https://play.google.com/store/apps/details?id=org.ab.abwallet.android.release',
+        ios: 'https://apps.apple.com/us/app/ab-wallet/id6745787849',
         qrCode: 'https://www.abpay.cash/',
     },
     mobile: {
         getUri: (uri: string) => {
-            console.log('AB PAY Attempt:', uri);
-            openInTelegramSafe(uri, 'abpay://');
+            openInTelegramSafe(uri, 'abpay', "https://www.abpay.cash");
             return uri;
         },
     },
-    qrCode: {
-        getUri: (uri: string) => uri,
-        instructions: {
-            learnMoreUrl: 'https://www.abpay.cash/',
-            steps: [
-                { description: 'Open the AB Pay app', step: 'install' as const, title: 'Open AB Pay' },
-                { description: 'Scan to connect', step: 'scan' as const, title: 'Tap Scan' },
-            ],
-        },
-    },
+    qrCode: { getUri: (uri: string) => uri },
     createConnector: getWalletConnectConnector({ projectId }),
 });
 
-/**
- * 修复 OKX 钱包 iOS 无法唤起
- * 使用官方 Universal Link
- */
-const customOkxWallet = ({ projectId }: { projectId: string }) => {
+const customOkxWallet = ({ projectId }: { projectId: string }) => () => {
     const wallet = okxWallet({ projectId });
     return {
         ...wallet,
         mobile: {
             ...wallet.mobile,
             getUri: (uri: string) => {
-                openInTelegramSafe(uri, 'okx://', 'https://www.okx.com/download');
+                openInTelegramSafe(uri, 'okx');
                 return uri;
             },
         },
-    };
+    } as any;
 };
 
-/**
- * 修复 MetaMask 钱包 iOS 无法唤起
- */
-const customMetaMaskWallet = ({ projectId }: { projectId: string }) => {
+const customMetaMaskWallet = ({ projectId }: { projectId: string }) => () => {
     const wallet = metaMaskWallet({ projectId });
     return {
         ...wallet,
         mobile: {
             ...wallet.mobile,
             getUri: (uri: string) => {
-                openInTelegramSafe(uri, 'metamask://', 'https://metamask.app.link/wc');
+                openInTelegramSafe(uri, 'metamask');
                 return uri;
             },
         },
-    };
+    } as any;
+};
+
+const customBinanceWallet = ({ projectId }: { projectId: string }) => () => {
+    const wallet = binanceWallet({ projectId });
+    return {
+        ...wallet,
+        mobile: {
+            ...wallet.mobile,
+            getUri: (uri: string) => {
+                openInTelegramSafe(uri, 'bncus');
+                return uri;
+            },
+        },
+    } as any;
 };
 
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || 'd1e2a22cfcfd75064bfc27b0bc8caa8c';
@@ -135,33 +136,23 @@ export const getWagmiConfig = () => {
                 groupName: 'Recommended',
                 wallets: [
                     abPayWallet({ projectId }),
-                    // customOkxWallet({ projectId }), // 必须使用修复版的 OKX
-                    // customMetaMaskWallet({ projectId }), // 必须使用修复版的 MetaMask
-                    binanceWallet,
+                    customOkxWallet({ projectId }),
+                    customMetaMaskWallet({ projectId }),
+                    customBinanceWallet({ projectId }),
                     bitgetWallet,
                     trustWallet,
                     walletConnectWallet,
                 ],
             },
-            {
-                groupName: 'Others',
-                wallets: [
-                    rainbowWallet,
-                    coinbaseWallet,
-                ],
-            },
         ],
-        {
-            appName,
-            projectId,
-        }
+        { appName, projectId }
     );
 
     return createConfig({
         connectors,
         chains: [mainnet, bsc],
         storage: createStorage({
-            key: 'tg-wallet-v6-final',
+            key: 'tg-wallet-v9-final',
             storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         }),
         transports: {

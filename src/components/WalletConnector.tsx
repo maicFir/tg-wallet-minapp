@@ -21,11 +21,33 @@ function WalletConnectorContent() {
             </section>
 
             <div className="divider"></div>
+            <br />
 
             <section className="button-section">
                 <span className="section-label">Custom Specialized Button</span>
                 <CustomConnectButton />
             </section>
+
+            {/* <section className="button-section">
+                <span className="section-label">Deep Link Testing</span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                        className="custom-btn chain-btn"
+                        style={{ fontSize: '12px', padding: '8px 12px' }}
+                        onClick={() => window?.Telegram?.WebApp?.openLink('https://rainbowkit.com/zh-CN', { try_instant_view: false })}
+                    >
+                        Test RainbowKit
+                    </button>
+
+                    <button
+                        className="custom-btn chain-btn"
+                        style={{ fontSize: '12px', padding: '8px 12px' }}
+                        onClick={() => window?.Telegram?.WebApp?.openLink('https://metamask.app.link/', { try_instant_view: false })}
+                    >
+                        Test MetaMask (UL)
+                    </button>
+                </div>
+            </section> */}
 
             {isConnected && (
                 <div className="account-info">

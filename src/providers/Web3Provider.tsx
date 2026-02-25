@@ -8,42 +8,48 @@ import { getWagmiConfig } from '@/config/wagmi';
 
 import '@rainbow-me/rainbowkit/styles.css';
 
-// 定义一个上下文，用于告知子组件 Web3 环境是否已就绪
 const Web3ReadyContext = createContext(false);
-
 export const useWeb3Ready = () => useContext(Web3ReadyContext);
 
-const performUltimateCleanup = async () => {
+const performFinalReset = async () => {
     if (typeof window === 'undefined') return;
-    const CLEANUP_KEY = 'wc_ultimate_cleanup_v6';
-    if (sessionStorage.getItem(CLEANUP_KEY)) return;
+
+    const RESET_KEY = 'wc_final_reset_v9.1';
+    if (sessionStorage.getItem(RESET_KEY)) return;
 
     try {
-        // 清理 LocalStorage
-        Object.keys(localStorage).forEach(key => {
-            if (key.includes('walletconnect') || key.includes('wc@2') || key.includes('wagmi')) {
+        console.warn('[Web3] Performing Mandatory Environment Purge...');
+
+        // 1. 强力清除本地存储
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            const k = key.toLowerCase();
+            if (k.includes('walletconnect') || k.includes('wc@2') || k.includes('wagmi') || k.includes('tg-wallet')) {
                 localStorage.removeItem(key);
             }
         });
 
-        // 强力清理 IndexedDB
+        // 2. 强力清除数据库
         if (window.indexedDB && window.indexedDB.databases) {
             const dbs = await window.indexedDB.databases();
-            await Promise.all(dbs.map(db => {
-                if (db.name && (db.name.includes('walletconnect') || db.name.includes('wc@2') || db.name.includes('WALLET_CONNECT'))) {
-                    return new Promise((resolve) => {
+            for (const db of dbs) {
+                if (db.name && (db.name.includes('walletconnect') || db.name.includes('wc@2'))) {
+                    await new Promise((resolve) => {
                         const req = window.indexedDB.deleteDatabase(db.name!);
                         req.onsuccess = resolve;
                         req.onerror = resolve;
                         req.onblocked = resolve;
+                        setTimeout(resolve, 300);
                     });
                 }
-                return Promise.resolve();
-            }));
+            }
         }
-    } catch (e) { }
 
-    sessionStorage.setItem(CLEANUP_KEY, 'true');
+        sessionStorage.setItem(RESET_KEY, 'true');
+        console.warn('[Web3] Environment Purge Completed.');
+    } catch (e) {
+        console.error('[Web3] Reset Failed', e);
+    }
 };
 
 export function Web3Provider({ children }: { children: ReactNode }) {
@@ -53,7 +59,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const init = async () => {
-            await performUltimateCleanup();
+            await performFinalReset();
+            // 停顿 200ms 确保浏览器 IO 完成
+            await new Promise(r => setTimeout(r, 200));
             const wagmiConfig = getWagmiConfig();
             setConfig(wagmiConfig);
             setIsReady(true);
@@ -61,18 +69,17 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         init();
     }, []);
 
-    // 如果还没有就绪，渲染 children 但不包裹 Provider (此时子组件内部会有 useWeb3Ready 守卫)
-    // 这样可以确保页面框架能立即显示，不会出现空白页
     if (!isReady || !config) {
         return (
-            <Web3ReadyContext.Provider value={false}>
-                {children}
-            </Web3ReadyContext.Provider>
+            <div style={{ background: '#000', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ color: '#00da95' }}>Securing Web3 Environment...</div>
+                <div style={{ display: 'none' }}>{children}</div>
+            </div>
         );
     }
 
     return (
-        <Web3ReadyContext.Provider value={true}>
+        <Web3ReadyContext.Provider value={isReady}>
             <WagmiProvider config={config}>
                 <QueryClientProvider client={queryClient}>
                     <RainbowKitProvider locale="en-US" theme={darkTheme()}>
