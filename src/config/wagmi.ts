@@ -84,10 +84,14 @@ const abPayWallet = ({ projectId }: { projectId: string }) => () => ({
     createConnector: getWalletConnectConnector({ projectId }),
 });
 
+/**
+ * 修复版 OKX 钱包 - 强制在生产环境显示
+ */
 const customOkxWallet = ({ projectId }: { projectId: string }) => () => {
     const wallet = okxWallet({ projectId });
     return {
         ...wallet,
+        hidden: () => false, // 强制显示，防止 RainbowKit 在特定 Webview 中将其隐藏
         mobile: {
             ...wallet.mobile,
             getUri: (uri: string) => {
@@ -98,10 +102,14 @@ const customOkxWallet = ({ projectId }: { projectId: string }) => () => {
     } as any;
 };
 
+/**
+ * 修复版 MetaMask 钱包 - 强制在生产环境显示
+ */
 const customMetaMaskWallet = ({ projectId }: { projectId: string }) => () => {
     const wallet = metaMaskWallet({ projectId });
     return {
         ...wallet,
+        hidden: () => false, // 强制显示
         mobile: {
             ...wallet.mobile,
             getUri: (uri: string) => {
@@ -112,10 +120,14 @@ const customMetaMaskWallet = ({ projectId }: { projectId: string }) => () => {
     } as any;
 };
 
+/**
+ * 修复版 Binance 钱包 - 强制在生产环境显示
+ */
 const customBinanceWallet = ({ projectId }: { projectId: string }) => () => {
     const wallet = binanceWallet({ projectId });
     return {
         ...wallet,
+        hidden: () => false, // 强制显示
         mobile: {
             ...wallet.mobile,
             getUri: (uri: string) => {
@@ -126,6 +138,7 @@ const customBinanceWallet = ({ projectId }: { projectId: string }) => () => {
     } as any;
 };
 
+// 确保在 Vercel 生产环境下也能正确读取 Project ID
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || 'd1e2a22cfcfd75064bfc27b0bc8caa8c';
 const appName = 'TG Wallet MinApp';
 
@@ -152,7 +165,7 @@ export const getWagmiConfig = () => {
         connectors,
         chains: [mainnet, bsc],
         storage: createStorage({
-            key: 'tg-wallet-v9-final',
+            key: 'tg-wallet-v10-final',
             storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         }),
         transports: {
