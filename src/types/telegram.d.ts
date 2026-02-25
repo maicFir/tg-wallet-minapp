@@ -20,6 +20,8 @@ declare global {
             onClick(callback: () => void): void;
         };
         openLink(url: string, options?: { try_instant_view?: boolean }): void;
+        /** Platform: 'ios' | 'android' | 'tdesktop' | 'weba' | 'web' | 'unknown' */
+        platform: string;
         // Add other fields as needed
     }
 
