@@ -99,6 +99,7 @@ const customOkxWallet = ({ projectId }: { projectId: string }) => () => {
                 return uri;
             },
         },
+        qrCode: { getUri: (uri: string) => uri },
     } as any;
 };
 
@@ -117,6 +118,7 @@ const customMetaMaskWallet = ({ projectId }: { projectId: string }) => () => {
                 return uri;
             },
         },
+        qrCode: { getUri: (uri: string) => uri },
     } as any;
 };
 
@@ -134,7 +136,7 @@ const customBinanceWallet = ({ projectId }: { projectId: string }) => () => {
                 openInTelegramSafe(uri, 'bncus');
                 return uri;
             },
-        },
+        }
     } as any;
 };
 
@@ -165,7 +167,7 @@ export const getWagmiConfig = () => {
         connectors,
         chains: [mainnet, bsc],
         storage: createStorage({
-            key: 'tg-wallet-v10-final',
+            key: 'tg-wallet-v11-final',
             storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         }),
         transports: {
